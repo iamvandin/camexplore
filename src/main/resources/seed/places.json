@@ -1,0 +1,294 @@
+[
+  {
+    "name": "Malis Cambodian Restaurant",
+    "category": "Restaurants",
+    "city": "Phnom Penh",
+    "rating": 4.8,
+    "reviewCount": 642,
+    "price": "$$$",
+    "isOpen": true,
+    "featured": true,
+    "hours": "06:30 AM – 10:30 PM",
+    "distanceKm": 1.2,
+    "address": "No. 136 Norodom Blvd, Tonle Bassac, Phnom Penh",
+    "phone": "+855 15 814 888",
+    "lat": 11.5564,
+    "lng": 104.9282,
+    "tags": [
+      "Living Cambodian Cuisine",
+      "Garden Courtyard",
+      "Fine Dining"
+    ],
+    "description": "Celebrated for reviving traditional 'Living Cambodian Cuisine' in a serene tropical courtyard with a Buddha pond. Famous for Kampot pepper crab, fish amok, and morning kuy teav.",
+    "images": [
+      "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80"
+    ],
+    "ownerEmail": "owner@malis.com",
+    "reviews": [
+      {
+        "author": "Sokha Meas",
+        "daysAgo": 3,
+        "rating": 5,
+        "text": "The Saraman beef and Kampot crab are unmatched. Peaceful garden ambiance right in the city center."
+      },
+      {
+        "author": "David Chen",
+        "daysAgo": 14,
+        "rating": 5,
+        "text": "Best introduction to authentic Khmer gastronomy. Impeccable service."
+      }
+    ]
+  },
+  {
+    "name": "Angkor Wat Archaeological Park",
+    "category": "Popular Places",
+    "city": "Siem Reap",
+    "rating": 4.9,
+    "reviewCount": 3820,
+    "price": "$$",
+    "isOpen": true,
+    "featured": true,
+    "hours": "05:00 AM – 05:30 PM",
+    "distanceKm": 5.8,
+    "address": "Krong Siem Reap, Siem Reap Province",
+    "phone": "+855 63 963 409",
+    "lat": 13.4125,
+    "lng": 103.867,
+    "tags": [
+      "UNESCO World Heritage",
+      "Sunrise Spot",
+      "12th Century Temple"
+    ],
+    "description": "The largest religious monument in the world and the crown jewel of the Khmer Empire. Arrive before dawn to watch the sun rise behind the iconic five lotus-bud towers.",
+    "images": [
+      "https://images.unsplash.com/photo-1569154941061-e231b4725ef1?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1600520611035-84157ad4084d?auto=format&fit=crop&w=900&q=80"
+    ],
+    "ownerEmail": null,
+    "reviews": [
+      {
+        "author": "Elena Rostova",
+        "daysAgo": 7,
+        "rating": 5,
+        "text": "Breathtaking at sunrise. Hire a licensed local guide at the entrance to understand the bas-relief stories."
+      },
+      {
+        "author": "Bopha Chann",
+        "daysAgo": 30,
+        "rating": 5,
+        "text": "No matter how many times you visit, the scale and craftsmanship leave you speechless."
+      }
+    ]
+  },
+  {
+    "name": "Amber Kampot",
+    "category": "Hotels",
+    "city": "Kampot",
+    "rating": 4.9,
+    "reviewCount": 215,
+    "price": "$$$$",
+    "isOpen": true,
+    "featured": false,
+    "hours": "24 Hours (Front Desk)",
+    "distanceKm": 3.1,
+    "address": "Prek Kampong Kandal, Kampot Riverfront",
+    "phone": "+855 33 688 999",
+    "lat": 10.6185,
+    "lng": 104.172,
+    "tags": [
+      "Luxury Suites",
+      "Infinity Pool",
+      "Riverside"
+    ],
+    "description": "An intimate all-pool-suite sanctuary nestled along the tranquil Kampot River, offering private plunge pools, spa treatments, and panoramic views of Bokor Mountain.",
+    "images": [
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80"
+    ],
+    "ownerEmail": null,
+    "reviews": [
+      {
+        "author": "Marcus Vance",
+        "daysAgo": 5,
+        "rating": 5,
+        "text": "Watching sunset over Bokor Mountain from the infinity pool was the highlight of our trip."
+      }
+    ]
+  },
+  {
+    "name": "Brown Coffee Roastery (BKK1)",
+    "category": "Cafes",
+    "city": "Phnom Penh",
+    "rating": 4.7,
+    "reviewCount": 890,
+    "price": "$$",
+    "isOpen": true,
+    "featured": false,
+    "hours": "06:30 AM – 09:00 PM",
+    "distanceKm": 0.7,
+    "address": "Street 57 & 294, Boeung Keng Kang 1, Phnom Penh",
+    "phone": "+855 23 215 215",
+    "lat": 11.5515,
+    "lng": 104.9255,
+    "tags": [
+      "Specialty Coffee",
+      "Work-Friendly",
+      "Artisan Bakery"
+    ],
+    "description": "Cambodia's beloved homegrown specialty coffee house combining warm Khmer architectural brickwork with locally roasted beans, freshly baked croissants, and fast Wi-Fi.",
+    "images": [
+      "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=900&q=80"
+    ],
+    "ownerEmail": null,
+    "reviews": [
+      {
+        "author": "Vannak Lim",
+        "daysAgo": 1,
+        "rating": 5,
+        "text": "Palm Sugar Iced Latte is a must-try! Great power outlets and calm atmosphere for remote work."
+      }
+    ]
+  },
+  {
+    "name": "Shinta Mani Angkor",
+    "category": "Hotels",
+    "city": "Siem Reap",
+    "rating": 4.9,
+    "reviewCount": 510,
+    "price": "$$$$",
+    "isOpen": true,
+    "featured": false,
+    "hours": "24 Hours (Front Desk)",
+    "distanceKm": 1.4,
+    "address": "Junction of Oum Khun & 14th Street, Siem Reap",
+    "phone": "+855 63 964 123",
+    "lat": 13.3633,
+    "lng": 103.8588,
+    "tags": [
+      "Bensley Design",
+      "Boutique Luxury",
+      "Old French Quarter"
+    ],
+    "description": "Designed by acclaimed architect Bill Bensley in the leafy French Quarter, blending monochrome Khmer-inspired elegance with a social enterprise mission supporting local communities.",
+    "images": [
+      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=900&q=80"
+    ],
+    "ownerEmail": null,
+    "reviews": [
+      {
+        "author": "Claire Dupont",
+        "daysAgo": 14,
+        "rating": 5,
+        "text": "Every corner looks like an art gallery. Just a 5-minute walk to the Old Market and river."
+      }
+    ]
+  },
+  {
+    "name": "Twenty Three Bistro",
+    "category": "Restaurants",
+    "city": "Kampot",
+    "rating": 4.8,
+    "reviewCount": 194,
+    "price": "$$",
+    "isOpen": false,
+    "featured": false,
+    "hours": "05:30 PM – 10:30 PM (Closed Tue)",
+    "distanceKm": 0.9,
+    "address": "Street 724, Old Market Quarter, Kampot",
+    "phone": "+855 96 442 1234",
+    "lat": 10.5942,
+    "lng": 104.1815,
+    "tags": [
+      "Kampot Pepper Specials",
+      "Tapas & Cocktails",
+      "Colonial Shophouse"
+    ],
+    "description": "Intimate bistro set in a restored French colonial shophouse celebrating fresh Kep seafood, organic Kampot green peppercorns, and craft botanical cocktails.",
+    "images": [
+      "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=900&q=80"
+    ],
+    "ownerEmail": null,
+    "reviews": [
+      {
+        "author": "Liam O'Connor",
+        "daysAgo": 7,
+        "rating": 5,
+        "text": "Book ahead! The seared tuna with green Kampot peppercorn sauce was unforgettable."
+      }
+    ]
+  },
+  {
+    "name": "Royal Palace & Silver Pagoda",
+    "category": "Popular Places",
+    "city": "Phnom Penh",
+    "rating": 4.7,
+    "reviewCount": 1540,
+    "price": "$",
+    "isOpen": true,
+    "featured": false,
+    "hours": "08:00 AM – 11:00 AM, 02:00 PM – 05:00 PM",
+    "distanceKm": 1.9,
+    "address": "Samdach Sothearos Blvd, Daun Penh, Phnom Penh",
+    "phone": "+855 23 211 992",
+    "lat": 11.5639,
+    "lng": 104.9312,
+    "tags": [
+      "Royal Architecture",
+      "Cultural Landmark",
+      "Riverfront"
+    ],
+    "description": "The official residence of the King of Cambodia, showcasing classic Khmer gilded roofs, manicured gardens, and the Silver Pagoda floored with over 5,000 silver tiles.",
+    "images": [
+      "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1528181304800-259b08848526?auto=format&fit=crop&w=900&q=80"
+    ],
+    "ownerEmail": null,
+    "reviews": [
+      {
+        "author": "Sreyneath Keo",
+        "daysAgo": 4,
+        "rating": 5,
+        "text": "Remember to dress modestly covering shoulders and knees. Stunning golden spires in the afternoon light."
+      }
+    ]
+  },
+  {
+    "name": "The Little Red Fox Espresso",
+    "category": "Cafes",
+    "city": "Siem Reap",
+    "rating": 4.8,
+    "reviewCount": 412,
+    "price": "$$",
+    "isOpen": true,
+    "featured": false,
+    "hours": "07:00 AM – 04:00 PM",
+    "distanceKm": 0.5,
+    "address": "Hap Guan Street, Kandal Village, Siem Reap",
+    "phone": "+855 12 456 789",
+    "lat": 13.3568,
+    "lng": 103.8548,
+    "tags": [
+      "Third-Wave Coffee",
+      "Kandal Village",
+      "Vegan Options"
+    ],
+    "description": "A vibrant creative hub in trendy Kandal Village serving ethically sourced Cambodian & regional specialty coffee, cold brew tonics, and nourishing brunch bowls.",
+    "images": [
+      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=900&q=80"
+    ],
+    "ownerEmail": null,
+    "reviews": [
+      {
+        "author": "Hannah Brooks",
+        "daysAgo": 6,
+        "rating": 5,
+        "text": "Best flat white in Siem Reap and right next to great independent boutiques."
+      }
+    ]
+  }
+]

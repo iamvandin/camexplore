@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LokalKH — Discover Restaurants, Hotels & Places in Cambodia</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet CSS & JS for Interactive Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fef6ee',
+                            100: '#fdebd7',
+                            500: '#ea580c', // Terracotta / Angkor Sunset
+                            600: '#c2410c',
+                            700: '#9a3412',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom subtle scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.6);
+        }
+
+        /* Custom Map Marker Styling */
+        .custom-pin {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
+            border: 2.5px solid #ffffff;
+            cursor: pointer;
+        }
+        .custom-pin:hover, .custom-pin.active {
+            transform: scale(1.22);
+            z-index: 1000 !important;
+        }
+        .dark .leaflet-tile-pane {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+        .leaflet-container {
+            font-family: 'Inter', sans-serif !important;
+            z-index: 10;
+        }
+
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        @media (max-width: 639px) {
+            #header-actions { gap: 0.25rem; }
+            #view-explore main { padding-left: 0.75rem; padding-right: 0.75rem; }
+            #results-count { max-width: 55%; }
+            #places-grid article { min-width: 0; }
+            .page-view .grid { min-width: 0; }
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-900 dark:bg-zinc-950 dark:text-zinc-100 transition-colors duration-200 antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Toast Notification Container (Replaces alert()) -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-30 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md border-b border-stone-200/80 dark:border-zinc-800">
+        <div class="max-w-[1440px] mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
+            <!-- Left: Brand Logo -->
+            <a href="#" onclick="switchView('explore'); resetAllFilters(); return false;" class="flex items-center gap-2.5 group shrink-0">
+                <div class="w-9 h-9 rounded-xl bg-brand-500 text-white flex items-center justify-center shadow-sm shadow-brand-500/30 group-hover:scale-105 transition-transform">
+                    <i data-lucide="compass" class="w-5 h-5"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-display font-extrabold text-base sm:text-lg tracking-tight leading-none text-stone-900 dark:text-white">Lokal<span class="text-brand-500">KH</span></span>
+                    <span class="hidden sm:block text-[10px] font-medium text-stone-500 dark:text-zinc-400 tracking-wider uppercase mt-0.5">Cambodia Guide</span>
+                </div>
+            </a>
+
+            <!-- Center: Primary Navigation Links (Desktop) -->
+            <nav aria-label="Main Navigation" class="hidden md:flex items-center gap-1 bg-stone-100/80 dark:bg-zinc-950/70 p-1 rounded-xl border border-stone-200/70 dark:border-zinc-800/80">
+                <button data-nav="explore" onclick="switchView('explore')" class="nav-link px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all bg-white dark:bg-zinc-800 text-stone-900 dark:text-white shadow-xs">
+                    Explore
+                </button>
+                <button data-nav="service" onclick="switchView('service')" class="nav-link px-3.5 py-1.5 rounded-lg text-sm font-medium text-stone-600 dark:text-zinc-400 hover:text-stone-900 dark:hover:text-white transition-all">
+                    Service
+                </button>
+                <button data-nav="pricing" onclick="switchView('pricing')" class="nav-link px-3.5 py-1.5 rounded-lg text-sm font-medium text-stone-600 dark:text-zinc-400 hover:text-stone-900 dark:hover:text-white transition-all">
+                    Pricing
+                </button>
+                <button data-nav="about" onclick="switchView('about')" class="nav-link px-3.5 py-1.5 rounded-lg text-sm font-medium text-stone-600 dark:text-zinc-400 hover:text-stone-900 dark:hover:text-white transition-all">
+                    About
+                </button>
+                <button data-nav="contact" onclick="switchView('contact')" class="nav-link px-3.5 py-1.5 rounded-lg text-sm font-medium text-stone-600 dark:text-zinc-400 hover:text-stone-900 dark:hover:text-white transition-all">
+                    Contact
+                </button>
+                <button id="nav-admin-btn" data-nav="admin" onclick="switchView('admin')" class="nav-link hidden items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 transition-all">
+                    <i data-lucide="shield" class="w-3.5 h-3.5"></i> Admin
+                </button>
+            </nav>
+
+            <!-- Right: Utility & Auth Controls -->
+            <div id="header-actions" class="flex items-center gap-1.5 sm:gap-2.5">
+                <!-- Saved Bookmarks Button -->
+                <button id="saved-filter-btn" onclick="switchView('explore'); toggleSavedFilter();" class="relative inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-sm font-medium text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors" title="Saved Places">
+                    <i data-lucide="bookmark" class="w-4 h-4"></i>
+                    <span class="hidden xl:inline">Saved</span>
+                    <span id="saved-count-badge" class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-semibold rounded-full bg-stone-200 dark:bg-zinc-800 text-stone-800 dark:text-zinc-200">0</span>
+                </button>
+
+                <!-- Add a Place Button -->
+                <button onclick="openAddModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-sm shadow-brand-500/20 transition-all active:scale-[0.98]">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Add Place</span>
+                </button>
+
+                <!-- Dark / Light Mode Toggle -->
+                <button id="theme-toggle" aria-label="Toggle Dark Mode" class="p-2.5 rounded-xl border border-stone-200 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-900 text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors">
+                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
+                </button>
+
+                <!-- Auth Area: Login/Register Button (Logged Out State) -->
+                <button id="auth-open-btn" onclick="openAuthModal('login')" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-stone-800 dark:text-zinc-100 hover:border-brand-500/60 hover:text-brand-600 dark:hover:text-brand-400 transition-colors shrink-0">
+                    <i data-lucide="user" class="w-4 h-4"></i>
+                    <span>Login / Register</span>
+                </button>
+
+                <!-- Logged-in Profile Menu -->
+                <div id="user-profile-menu" class="hidden relative">
+                    <button onclick="toggleUserDropdown()" class="flex items-center gap-2 px-2 py-1.5 rounded-xl border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-stone-50 dark:hover:bg-zinc-800 transition-colors">
+                        <span id="user-avatar-initials" class="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-xs font-bold">U</span>
+                        <span id="user-display-name" class="hidden xl:inline text-sm font-semibold text-stone-800 dark:text-zinc-200 max-w-24 truncate">User</span>
+                        <i data-lucide="chevron-down" class="hidden sm:block w-4 h-4 text-stone-400"></i>
+                    </button>
+                    <div id="user-dropdown-popover" class="hidden absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 shadow-xl py-1.5 z-40">
+                        <div class="px-3.5 py-2 border-b border-stone-100 dark:border-zinc-800">
+                            <div class="flex items-center justify-between gap-1">
+                                <p id="dropdown-user-name" class="text-xs font-bold text-stone-900 dark:text-white truncate">Sokha Meas</p>
+                                <span id="dropdown-plan-badge" class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-stone-100 dark:bg-zinc-800 text-stone-600 dark:text-zinc-300">Free</span>
+                            </div>
+                            <p id="dropdown-user-email" class="text-[11px] text-stone-500 dark:text-zinc-400 truncate mt-0.5">sokha@lokalkh.com</p>
+                        </div>
+                        <button onclick="toggleUserDropdown(); switchView('explore'); if(!state.onlySaved) toggleSavedFilter();" class="w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800 flex items-center gap-2">
+                            <i data-lucide="bookmark" class="w-3.5 h-3.5 text-brand-500"></i> My Saved Places
+                        </button>
+                        <button onclick="toggleUserDropdown(); openAddModal();" class="w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800 flex items-center gap-2">
+                            <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-brand-500"></i> Submit a Listing
+                        </button>
+                        <button onclick="toggleUserDropdown(); switchView('pricing');" class="w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800 flex items-center gap-2">
+                            <i data-lucide="crown" class="w-3.5 h-3.5 text-amber-500"></i> Manage Subscription
+                        </button>
+                        <button id="dropdown-admin-link" onclick="toggleUserDropdown(); switchView('admin');" class="hidden w-full text-left px-3.5 py-2 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 flex items-center gap-2">
+                            <i data-lucide="shield" class="w-3.5 h-3.5"></i> Admin Dashboard
+                        </button>
+                        <div class="my-1 border-t border-stone-100 dark:border-zinc-800"></div>
+                        <button onclick="handleLogout()" class="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2">
+                            <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Sign Out
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mobile Hamburger Button -->
+                <button id="mobile-menu-btn" onclick="toggleMobileDrawer()" aria-label="Open Navigation Menu" class="md:hidden p-2.5 rounded-xl border border-stone-200 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-900 text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors">
+                    <i id="mobile-menu-icon-open" data-lucide="menu" class="w-4 h-4"></i>
+                    <i id="mobile-menu-icon-close" data-lucide="x" class="w-4 h-4 hidden"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Collapsible Navigation Drawer -->
+        <div id="mobile-nav-drawer" class="hidden md:hidden border-t border-stone-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-4 space-y-2 shadow-lg">
+            <button data-nav="explore" onclick="switchView('explore'); toggleMobileDrawer(false);" class="mobile-nav-link w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-brand-500/10 text-brand-600 dark:text-brand-400">
+                <span class="flex items-center gap-2.5"><i data-lucide="compass" class="w-4 h-4"></i> Explore Places</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+            <button data-nav="service" onclick="switchView('service'); toggleMobileDrawer(false);" class="mobile-nav-link w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800">
+                <span class="flex items-center gap-2.5"><i data-lucide="sparkles" class="w-4 h-4"></i> Our Services</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+            <button data-nav="pricing" onclick="switchView('pricing'); toggleMobileDrawer(false);" class="mobile-nav-link w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800">
+                <span class="flex items-center gap-2.5"><i data-lucide="crown" class="w-4 h-4"></i> Pricing &amp; Plans</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+            <button data-nav="about" onclick="switchView('about'); toggleMobileDrawer(false);" class="mobile-nav-link w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800">
+                <span class="flex items-center gap-2.5"><i data-lucide="info" class="w-4 h-4"></i> About LokalKH</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+            <button data-nav="contact" onclick="switchView('contact'); toggleMobileDrawer(false);" class="mobile-nav-link w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800">
+                <span class="flex items-center gap-2.5"><i data-lucide="mail" class="w-4 h-4"></i> Contact Us</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+            <button id="mobile-admin-btn" data-nav="admin" onclick="switchView('admin'); toggleMobileDrawer(false);" class="mobile-nav-link hidden w-full items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-brand-600 dark:text-brand-400 hover:bg-brand-500/10">
+                <span class="flex items-center gap-2.5"><i data-lucide="shield" class="w-4 h-4"></i> Admin Dashboard</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+
+            <div class="pt-2 border-t border-stone-200/80 dark:border-zinc-800">
+                <button id="mobile-auth-btn" onclick="toggleMobileDrawer(false); openAuthModal('login');" class="w-full py-2.5 px-4 rounded-xl text-sm font-semibold bg-stone-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center gap-2">
+                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                    <span>Login / Register</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 1: EXPLORE VIEW (Default Split-Screen Place Discovery)           -->
+    <!-- ===================================================================== -->
+    <div id="view-explore" class="page-view">
+        <!-- Hero Search & Filter Banner -->
+        <section class="bg-white dark:bg-zinc-900 border-b border-stone-200/80 dark:border-zinc-800">
+            <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
+                <div class="max-w-3xl">
+                    <h1 id="hero-title-display" class="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-900 dark:text-white">
+                        Find the best places across <span class="text-brand-500">Cambodia</span>
+                    </h1>
+                    <p id="hero-subtitle-display" class="mt-1.5 text-sm text-stone-600 dark:text-zinc-400">
+                        Explore top-rated restaurants, boutique hotels, specialty cafes, and iconic cultural landmarks.
+                    </p>
+                </div>
+
+                <!-- Unified Search & Province Bar -->
+                <div class="mt-5 flex flex-col md:flex-row gap-2.5 p-2 rounded-2xl bg-stone-100/90 dark:bg-zinc-950 border border-stone-200/80 dark:border-zinc-800 shadow-xs">
+                    <!-- Keyword Input -->
+                    <div class="relative flex-1 flex items-center">
+                        <i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3.5 pointer-events-none"></i>
+                        <input
+                            id="search-input"
+                            type="text"
+                            placeholder="Search restaurants, hotels, temples, or dishes..."
+                            oninput="handleSearchInput(this.value)"
+                            class="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white dark:bg-zinc-900 text-sm text-stone-900 dark:text-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        >
+                        <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 p-1 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-zinc-200" title="Clear search">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- Province / City Selector -->
+                    <div class="relative flex items-center md:w-56">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-brand-500 absolute left-3.5 pointer-events-none"></i>
+                        <select
+                            id="city-select"
+                            onchange="handleCityChange(this.value)"
+                            class="w-full pl-10 pr-8 py-2.5 rounded-xl bg-white dark:bg-zinc-900 text-sm font-medium text-stone-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none cursor-pointer"
+                        >
+                            <option value="all">All Provinces &amp; Cities</option>
+                            <option value="Phnom Penh">Phnom Penh</option>
+                            <option value="Siem Reap">Siem Reap</option>
+                            <option value="Kampot">Kampot</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-stone-400 absolute right-3 pointer-events-none"></i>
+                    </div>
+
+                    <!-- Open Now Toggle -->
+                    <button
+                        id="open-now-btn"
+                        onclick="toggleOpenNow()"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-white dark:bg-zinc-900 text-stone-700 dark:text-zinc-300 border border-transparent hover:border-stone-300 dark:hover:border-zinc-700 transition-all shrink-0"
+                    >
+                        <span id="open-now-dot" class="w-2 h-2 rounded-full bg-stone-400"></span>
+                        <span>Open Now</span>
+                    </button>
+                </div>
+
+                <!-- Category Filter Pills & Mobile Map Toggle -->
+                <div class="mt-4 flex items-center justify-between gap-3">
+                    <div id="category-pills" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+
+                    <!-- Mobile Show/Hide Map Button -->
+                    <button
+                        id="mobile-map-toggle"
+                        onclick="toggleMobileMap()"
+                        class="lg:hidden inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-stone-900 dark:bg-white text-white dark:text-zinc-900 shrink-0 shadow-xs"
+                    >
+                        <i data-lucide="map" class="w-3.5 h-3.5"></i>
+                        <span id="mobile-map-label">Show Map</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Split-Screen Explorer Content -->
+        <main class="max-w-[1440px] mx-auto px-4 sm:px-6 py-6">
+            <div class="flex flex-col lg:flex-row gap-6 items-start">
+                <!-- Left Side: Results Header + Cards Grid -->
+                <div id="listings-panel" class="w-full lg:w-[58%] xl:w-[60%]">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <p id="results-count" class="text-sm font-medium text-stone-600 dark:text-zinc-400">
+                            Showing <span class="font-bold text-stone-900 dark:text-white">8</span> places
+                        </p>
+
+                        <div class="flex items-center gap-2">
+                            <label for="sort-select" class="text-xs text-stone-500 dark:text-zinc-400 hidden sm:inline">Sort by:</label>
+                            <select
+                                id="sort-select"
+                                onchange="handleSortChange(this.value)"
+                                class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 text-stone-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                            >
+                                <option value="recommended">Recommended</option>
+                                <option value="rating">Highest Rated</option>
+                                <option value="distance">Nearest First</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Cards Grid -->
+                    <div id="places-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="empty-state" class="hidden flex-col items-center justify-center text-center py-16 px-4 rounded-3xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800">
+                        <div class="w-12 h-12 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center mb-3">
+                            <i data-lucide="search-x" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-base text-stone-900 dark:text-white">No matching places found</h3>
+                        <p class="text-sm text-stone-500 dark:text-zinc-400 max-w-sm mt-1">
+                            Try adjusting your search keywords, changing the province filter, or clearing active filters.
+                        </p>
+                        <button onclick="resetAllFilters()" class="mt-4 px-4 py-2 rounded-xl text-sm font-semibold bg-brand-500 text-white hover:bg-brand-600 transition-colors">
+                            Reset All Filters
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Side: Sticky Interactive Map -->
+                <div id="map-panel" class="hidden lg:block w-full lg:w-[42%] xl:w-[40%] lg:sticky lg:top-20">
+                    <div class="relative rounded-2xl overflow-hidden border border-stone-200 dark:border-zinc-800 shadow-sm bg-stone-200 dark:bg-zinc-900 h-[65vh] lg:h-[calc(100vh-7rem)]">
+                        <div id="map" class="w-full h-full"></div>
+
+                        <!-- Floating Map Legend / Quick City Jump -->
+                        <div class="absolute top-3 left-3 z-20 flex flex-wrap gap-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md p-1.5 rounded-xl border border-stone-200/80 dark:border-zinc-800 shadow-sm">
+                            <button onclick="flyToCity('all')" class="px-2.5 py-1 rounded-lg text-xs font-semibold hover:bg-stone-100 dark:hover:bg-zinc-800 text-stone-700 dark:text-zinc-200 transition-colors">Cambodia</button>
+                            <button onclick="flyToCity('Phnom Penh')" class="px-2.5 py-1 rounded-lg text-xs font-semibold hover:bg-stone-100 dark:hover:bg-zinc-800 text-stone-700 dark:text-zinc-200 transition-colors">Phnom Penh</button>
+                            <button onclick="flyToCity('Siem Reap')" class="px-2.5 py-1 rounded-lg text-xs font-semibold hover:bg-stone-100 dark:hover:bg-zinc-800 text-stone-700 dark:text-zinc-200 transition-colors">Siem Reap</button>
+                            <button onclick="flyToCity('Kampot')" class="px-2.5 py-1 rounded-lg text-xs font-semibold hover:bg-stone-100 dark:hover:bg-zinc-800 text-stone-700 dark:text-zinc-200 transition-colors">Kampot</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 2: SERVICE VIEW                                                  -->
+    <!-- ===================================================================== -->
+    <section id="view-service" class="page-view hidden max-w-[1440px] mx-auto px-4 sm:px-6 py-10 sm:py-14">
+        <div class="max-w-3xl mx-auto text-center">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/10 text-brand-600 dark:text-brand-400 mb-3">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Platform Solutions
+            </span>
+            <h2 class="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900 dark:text-white">
+                Built for Explorers &amp; Local Businesses
+            </h2>
+            <p class="mt-3 text-sm sm:text-base text-stone-600 dark:text-zinc-400 leading-relaxed">
+                Whether you are planning a weekend getaway in Kampot or growing your restaurant in Phnom Penh, LokalKH connects people with verified local experiences.
+            </p>
+        </div>
+
+        <!-- Services Grid -->
+        <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Card 1 -->
+            <div class="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
+                <div>
+                    <div class="w-11 h-11 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center mb-4">
+                        <i data-lucide="map-pin" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-lg text-stone-900 dark:text-white">Smart Place Discovery</h3>
+                    <p class="mt-2 text-sm text-stone-600 dark:text-zinc-400 leading-relaxed">
+                        Interactive map clustering, real-time "Open Now" status, authentic community reviews, and personal bookmark collections across all 25 provinces.
+                    </p>
+                </div>
+                <button onclick="switchView('explore')" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 hover:text-brand-600">
+                    Start Exploring <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
+                <div>
+                    <div class="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+                        <i data-lucide="badge-check" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-lg text-stone-900 dark:text-white">Verified Business Profiles</h3>
+                    <p class="mt-2 text-sm text-stone-600 dark:text-zinc-400 leading-relaxed">
+                        Claim your restaurant, cafe, or boutique hotel for free. Update seasonal menus, room rates, direct phone links, and respond directly to guest reviews.
+                    </p>
+                </div>
+                <button onclick="openAddModal()" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">
+                    List Your Business <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
+                <div>
+                    <div class="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
+                        <i data-lucide="trending-up" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-lg text-stone-900 dark:text-white">Featured City Spotlights</h3>
+                    <p class="mt-2 text-sm text-stone-600 dark:text-zinc-400 leading-relaxed">
+                        Boost visibility with top-of-category placement, editorial photography features, and weekend travel guide inclusions read by thousands of visitors.
+                    </p>
+                </div>
+                <button onclick="switchView('contact')" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-amber-600 dark:text-amber-400 hover:underline">
+                    Request Media Kit <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Business Partner Banner -->
+        <div class="mt-10 p-6 sm:p-10 rounded-3xl bg-stone-900 dark:bg-zinc-900 border border-stone-800 text-white flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div class="max-w-2xl">
+                <span class="text-xs font-bold uppercase tracking-wider text-brand-500">Tourism &amp; Hospitality Partners</span>
+                <h3 class="font-display text-2xl font-extrabold mt-1">Need Custom Geolocation Data or Travel APIs?</h3>
+                <p class="text-sm text-stone-300 mt-2 leading-relaxed">
+                    We partner with Cambodian tour operators, hospitality groups, and local municipalities to provide verified POI datasets and interactive embeddable maps.
+                </p>
+            </div>
+            <button onclick="switchView('contact')" class="px-6 py-3 rounded-xl text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-lg shadow-brand-500/25 shrink-0 transition-all">
+                Partner With Us
+            </button>
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 2B: PRICING & SUBSCRIPTION VIEW                                  -->
+    <!-- ===================================================================== -->
+    <section id="view-pricing" class="page-view hidden max-w-[1440px] mx-auto px-4 sm:px-6 py-10 sm:py-14">
+        <div class="max-w-3xl mx-auto text-center">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/10 text-brand-600 dark:text-brand-400 mb-3">
+                <i data-lucide="crown" class="w-3.5 h-3.5"></i> Flexible Plans
+            </span>
+            <h2 class="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900 dark:text-white">
+                Explore Free, or Promote Your Business
+            </h2>
+            <p class="mt-3 text-sm sm:text-base text-stone-600 dark:text-zinc-400 leading-relaxed">
+                Free accounts can browse every restaurant, hotel, and landmark across Cambodia. Upgrade to a Business subscription to publish and promote your own listings.
+            </p>
+        </div>
+
+        <!-- Pricing Cards Grid -->
+        <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
+            <!-- Tier 1: Free Explorer -->
+            <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">Explorer</span>
+                        <span id="badge-plan-free" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-stone-100 dark:bg-zinc-800 text-stone-600 dark:text-zinc-300">Default</span>
+                    </div>
+                    <div class="mt-4 flex items-baseline gap-1">
+                        <span class="font-display text-4xl font-extrabold text-stone-900 dark:text-white">$0</span>
+                        <span class="text-sm text-stone-500 dark:text-zinc-400">/ forever</span>
+                    </div>
+                    <p class="mt-2 text-xs text-stone-600 dark:text-zinc-400">Ideal for travelers, foodies, and locals discovering Cambodia.</p>
+
+                    <ul class="mt-6 space-y-3 text-xs sm:text-sm text-stone-700 dark:text-zinc-300">
+                        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0"></i> Unlimited map &amp; directory exploration</li>
+                        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0"></i> Save unlimited favorite places</li>
+                        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0"></i> Read &amp; post community reviews</li>
+                        <li class="flex items-center gap-2.5 text-stone-400 dark:text-zinc-500"><i data-lucide="x" class="w-4 h-4 text-rose-400 shrink-0"></i> Cannot add or promote business places</li>
+                    </ul>
+                </div>
+
+                <button id="btn-plan-free" onclick="selectSubscriptionPlan('free')" class="mt-8 w-full py-3 rounded-xl text-sm font-semibold border border-stone-200 dark:border-zinc-700 text-stone-800 dark:text-zinc-200 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors">
+                    Current Free Tier
+                </button>
+            </div>
+
+            <!-- Tier 2: Business Pro (Most Popular) -->
+            <div class="relative p-6 sm:p-8 rounded-3xl bg-white dark:bg-zinc-900 border-2 border-brand-500 shadow-xl shadow-brand-500/10 flex flex-col justify-between">
+                <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-brand-500 text-white shadow-sm">
+                    Most Popular
+                </span>
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase tracking-wider text-brand-500">Business Pro</span>
+                        <span id="badge-plan-pro" class="hidden px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">Active Plan</span>
+                    </div>
+                    <div class="mt-4 flex items-baseline gap-1">
+                        <span class="font-display text-4xl font-extrabold text-stone-900 dark:text-white">$19</span>
+                        <span class="text-sm text-stone-500 dark:text-zinc-400">/ month</span>
+                    </div>
+                    <p class="mt-2 text-xs text-stone-600 dark:text-zinc-400">For restaurants, cafes, and boutique hotels ready to publish listings.</p>
+
+                    <ul class="mt-6 space-y-3 text-xs sm:text-sm text-stone-700 dark:text-zinc-300">
+                        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0"></i> Everything in Explorer Free</li>
+                        <li class="flex items-center gap-2.5 font-semibold text-stone-900 dark:text-white"><i data-lucide="check" class="w-4 h-4 text-brand-500 shrink-0"></i> Add &amp; publish up to 5 business places</li>
+                        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0"></i> Verified Business badge on map pins</li>
+                        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0"></i> Direct phone &amp; booking contact display</li>
+                    </ul>
+                </div>
+
+                <button id="btn-plan-pro" onclick="selectSubscriptionPlan('pro')" class="mt-8 w-full py-3 rounded-xl text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-sm shadow-brand-500/25 transition-all">
+                    Subscribe to Business Pro
+                </button>
+            </div>
+
+            <!-- Tier 3: Featured Partner -->
+            <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Featured Partner</span>
+                        <span id="badge-plan-featured" class="hidden px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">Active Plan</span>
+                    </div>
+                    <div class="mt-4 flex items-baseline gap-1">
+                        <span class="font-display text-4xl font-extrabold text-stone-900 dark:text-white">$49</span>
+                        <span class="text-sm text-stone-500 dark:text-zinc-400">/ month</span>
+                    </div>
+                    <p class="mt-2 text-xs text-stone-600 dark:text-zinc-400">Maximum visibility for hospitality groups, resorts &amp; popular attractions.</p>
+
+                    <ul class="mt-6 space-y-3 text-xs sm:text-sm text-stone-700 dark:text-zinc-300">
+                        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0"></i> Unlimited business place listings</li>
+                        <li class="flex items-center gap-2.5 font-semibold text-stone-900 dark:text-white"><i data-lucide="check" class="w-4 h-4 text-amber-500 shrink-0"></i> Pinned "Featured" spotlight at top of search</li>
+                        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0"></i> Highlighted gold/terracotta map marker</li>
+                        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0"></i> Priority 24/7 Phnom Penh partner support</li>
+                    </ul>
+                </div>
+
+                <button id="btn-plan-featured" onclick="selectSubscriptionPlan('featured')" class="mt-8 w-full py-3 rounded-xl text-sm font-semibold bg-stone-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 transition-opacity">
+                    Upgrade to Featured Partner
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 4: ABOUT VIEW                                                    -->
+    <!-- ===================================================================== -->
+    <section id="view-about" class="page-view hidden max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+        <h2 class="font-display text-3xl font-extrabold tracking-tight text-stone-900 dark:text-white">About Lokal<span class="text-brand-500">KH</span></h2>
+        <p class="mt-4 text-sm leading-relaxed text-stone-600 dark:text-zinc-300">
+            LokalKH is a community-powered guide to the best restaurants, boutique hotels, specialty cafes and cultural landmarks
+            across Cambodia, from the riverfront of Phnom Penh to the temples of Siem Reap and the pepper farms of Kampot.
+        </p>
+        <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800">
+                <p class="font-display font-bold text-stone-900 dark:text-white">For explorers</p>
+                <p class="mt-1.5 text-xs text-stone-500 dark:text-zinc-400">Search, filter, save favourites and share honest reviews, free forever.</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800">
+                <p class="font-display font-bold text-stone-900 dark:text-white">For local businesses</p>
+                <p class="mt-1.5 text-xs text-stone-500 dark:text-zinc-400">List your place and reach travellers with Business Pro or Featured Partner plans.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 4B: CONTACT VIEW                                                 -->
+    <!-- ===================================================================== -->
+    <section id="view-contact" class="page-view hidden max-w-xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+        <h2 class="font-display text-3xl font-extrabold tracking-tight text-stone-900 dark:text-white">Contact Us</h2>
+        <p class="mt-2 text-sm text-stone-600 dark:text-zinc-400">Questions, partnerships or listing help? Our Phnom Penh team replies within 24 hours.</p>
+        <form onsubmit="handleContactSubmit(event)" class="mt-6 space-y-4 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Name</label>
+                <input type="text" id="contact-name" required maxlength="100" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Email</label>
+                <input type="email" id="contact-email" required maxlength="200" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Message</label>
+                <textarea id="contact-message" rows="5" required maxlength="3000" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+            </div>
+            <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-sm">Send Message</button>
+        </form>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 5: ADMIN DASHBOARD VIEW                                          -->
+    <!-- ===================================================================== -->
+    <section id="view-admin" class="page-view hidden max-w-[1440px] mx-auto px-4 sm:px-6 py-8 sm:py-10">
+        <!-- Admin Header & Quick KPIs -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-stone-200/80 dark:border-zinc-800">
+            <div>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 mb-2">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Administrator Control Panel
+                </div>
+                <h2 class="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-900 dark:text-white">
+                    LokalKH Admin Dashboard
+                </h2>
+                <p class="text-xs sm:text-sm text-stone-500 dark:text-zinc-400 mt-1">
+                    Manage user roles &amp; subscription access, add or edit directory listings, and update website content.
+                </p>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <button onclick="openAddModal()" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-sm">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Add New Place
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI Summary Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+            <div class="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800">
+                <p class="text-xs font-medium text-stone-500 dark:text-zinc-400">Total Places</p>
+                <p id="admin-stat-places" class="font-display text-2xl font-extrabold text-stone-900 dark:text-white mt-1">8</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800">
+                <p class="text-xs font-medium text-stone-500 dark:text-zinc-400">Registered Users</p>
+                <p id="admin-stat-users" class="font-display text-2xl font-extrabold text-stone-900 dark:text-white mt-1">4</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800">
+                <p class="text-xs font-medium text-stone-500 dark:text-zinc-400">Paid Subscribers</p>
+                <p id="admin-stat-paid" class="font-display text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">2</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800">
+                <p class="text-xs font-medium text-stone-500 dark:text-zinc-400">Featured Listings</p>
+                <p id="admin-stat-featured" class="font-display text-2xl font-extrabold text-brand-500 mt-1">2</p>
+            </div>
+        </div>
+
+        <!-- Admin Sub-Navigation Tabs -->
+        <div class="mt-6 flex flex-wrap gap-2 border-b border-stone-200/80 dark:border-zinc-800 pb-3">
+            <button id="admin-tab-places" onclick="switchAdminTab('places')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-stone-900 dark:bg-white text-white dark:text-zinc-900 transition-all">
+                Manage Places (Add / Edit / Delete)
+            </button>
+            <button id="admin-tab-users" onclick="switchAdminTab('users')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-stone-100 dark:bg-zinc-900 text-stone-700 dark:text-zinc-300 hover:bg-stone-200 dark:hover:bg-zinc-800 transition-all">
+                User Access &amp; Subscriptions
+            </button>
+            <button id="admin-tab-content" onclick="switchAdminTab('content')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-stone-100 dark:bg-zinc-900 text-stone-700 dark:text-zinc-300 hover:bg-stone-200 dark:hover:bg-zinc-800 transition-all">
+                Website Content Settings
+            </button>
+            <button id="admin-tab-messages" onclick="switchAdminTab('messages')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-stone-100 dark:bg-zinc-900 text-stone-700 dark:text-zinc-300 hover:bg-stone-200 dark:hover:bg-zinc-800 transition-all">
+                Contact Messages
+            </button>
+        </div>
+
+        <!-- TAB 1: Manage Places Table -->
+        <div id="admin-panel-places" class="mt-6 bg-white dark:bg-zinc-900 rounded-3xl border border-stone-200/80 dark:border-zinc-800 overflow-hidden shadow-xs">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-stone-200/80 dark:border-zinc-800 bg-stone-50/80 dark:bg-zinc-950/60 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">
+                            <th class="py-3.5 px-4">Place</th>
+                            <th class="py-3.5 px-4">Category &amp; City</th>
+                            <th class="py-3.5 px-4">Rating</th>
+                            <th class="py-3.5 px-4">Status</th>
+                            <th class="py-3.5 px-4">Featured</th>
+                            <th class="py-3.5 px-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-places-tbody" class="divide-y divide-stone-100 dark:divide-zinc-800 text-xs sm:text-sm">
+                        <!-- Populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 2: User Access & Subscription Management -->
+        <div id="admin-panel-users" class="hidden mt-6 bg-white dark:bg-zinc-900 rounded-3xl border border-stone-200/80 dark:border-zinc-800 overflow-hidden shadow-xs">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-stone-200/80 dark:border-zinc-800 bg-stone-50/80 dark:bg-zinc-950/60 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">
+                            <th class="py-3.5 px-4">User</th>
+                            <th class="py-3.5 px-4">Role</th>
+                            <th class="py-3.5 px-4">Subscription Plan</th>
+                            <th class="py-3.5 px-4">Access Status</th>
+                            <th class="py-3.5 px-4 text-right">Quick Controls</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-users-tbody" class="divide-y divide-stone-100 dark:divide-zinc-800 text-xs sm:text-sm">
+                        <!-- Populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 4: Contact Messages -->
+        <div id="admin-panel-messages" class="hidden mt-6 bg-white dark:bg-zinc-900 rounded-3xl border border-stone-200/80 dark:border-zinc-800 overflow-hidden shadow-xs">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-stone-200/80 dark:border-zinc-800 bg-stone-50/80 dark:bg-zinc-950/60 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">
+                            <th class="py-3.5 px-4">From</th>
+                            <th class="py-3.5 px-4">Message</th>
+                            <th class="py-3.5 px-4">Received</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-messages-tbody" class="divide-y divide-stone-100 dark:divide-zinc-800 text-xs sm:text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 3: Website Content Editor -->
+        <div id="admin-panel-content" class="hidden mt-6 max-w-3xl bg-white dark:bg-zinc-900 rounded-3xl border border-stone-200/80 dark:border-zinc-800 p-6 sm:p-8 shadow-xs">
+            <h3 class="font-display font-bold text-lg text-stone-900 dark:text-white">Homepage Hero &amp; Announcement Content</h3>
+            <p class="text-xs text-stone-500 dark:text-zinc-400 mt-1">Changes apply immediately across the public Explorer interface.</p>
+
+            <form onsubmit="handleSiteContentSave(event)" class="mt-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Hero Headline</label>
+                    <input type="text" id="cms-hero-title" value="Find the best places across Cambodia" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Hero Subtitle</label>
+                    <textarea id="cms-hero-subtitle" rows="2" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">Explore top-rated restaurants, boutique hotels, specialty cafes, and iconic cultural landmarks.</textarea>
+                </div>
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-sm">
+                    Update Website Content
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SUBSCRIPTION UPGRADE GATE MODAL (Triggered when Free users add place) -->
+    <!-- ===================================================================== -->
+    <div id="upgrade-gate-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-stone-950/60 backdrop-blur-xs" onclick="closeUpgradeGateModal(event)">
+        <div class="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-stone-200 dark:border-zinc-800 p-6 sm:p-8 text-center" onclick="event.stopPropagation()">
+            <button onclick="closeUpgradeGateModal()" class="absolute top-4 right-4 p-2 rounded-xl text-stone-400 hover:bg-stone-100 dark:hover:bg-zinc-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="w-12 h-12 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="lock" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-display text-xl font-extrabold text-stone-900 dark:text-white">Business Subscription Required</h3>
+            <p class="mt-2 text-xs sm:text-sm text-stone-600 dark:text-zinc-400 leading-relaxed">
+                Free Explorer accounts can browse, bookmark, and review places. To publish or promote a business on LokalKH, please activate a <strong class="text-stone-900 dark:text-white">Business Pro ($19/mo)</strong> or <strong class="text-stone-900 dark:text-white">Featured Partner ($49/mo)</strong> plan.
+            </p>
+            <div class="mt-6 flex flex-col sm:flex-row gap-2.5">
+                <button onclick="closeUpgradeGateModal()" class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold border border-stone-200 dark:border-zinc-700 text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800">
+                    Keep Exploring Free
+                </button>
+                <button onclick="closeUpgradeGateModal(); switchView('pricing');" class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-sm">
+                    View Pricing Plans
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- ADMIN EDIT PLACE MODAL                                                -->
+    <!-- ===================================================================== -->
+    <div id="edit-place-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-stone-950/60 backdrop-blur-xs" onclick="closeEditPlaceModal(event)">
+        <div class="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-stone-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+            <div class="px-6 py-4 border-b border-stone-200 dark:border-zinc-800 flex items-center justify-between">
+                <h3 class="font-display font-bold text-lg text-stone-900 dark:text-white">Edit Place Listing</h3>
+                <button onclick="closeEditPlaceModal()" class="p-2 rounded-xl text-stone-400 hover:bg-stone-100 dark:hover:bg-zinc-800">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form onsubmit="handleEditPlaceSubmit(event)" class="p-6 overflow-y-auto space-y-4">
+                <input type="hidden" id="edit-place-id">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Place Name</label>
+                    <input type="text" id="edit-place-name" required class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Category</label>
+                        <select id="edit-place-category" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white">
+                            <option value="Restaurants">Restaurants</option>
+                            <option value="Hotels">Hotels</option>
+                            <option value="Popular Places">Popular Places</option>
+                            <option value="Cafes">Cafes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">City / Province</label>
+                        <select id="edit-place-city" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white">
+                            <option value="Phnom Penh">Phnom Penh</option>
+                            <option value="Siem Reap">Siem Reap</option>
+                            <option value="Kampot">Kampot</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Open Status</label>
+                        <select id="edit-place-open" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white">
+                            <option value="true">Open Now</option>
+                            <option value="false">Closed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Featured Promotion</label>
+                        <select id="edit-place-featured" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white">
+                            <option value="false">Standard Listing</option>
+                            <option value="true">Featured Spotlight</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Address</label>
+                    <input type="text" id="edit-place-address" required class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Description</label>
+                    <textarea id="edit-place-description" rows="3" required class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeEditPlaceModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-stone-600 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800">Cancel</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- LOGIN / REGISTER MODAL                                                -->
+    <!-- ===================================================================== -->
+    <div id="auth-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-stone-950/60 backdrop-blur-xs" onclick="closeAuthModal(event)">
+        <div class="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-stone-200 dark:border-zinc-800 overflow-hidden" onclick="event.stopPropagation()">
+            <!-- Close Button -->
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 p-2 rounded-xl text-stone-400 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors" aria-label="Close Auth Modal">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="p-6 sm:p-8">
+                <!-- Brand Header -->
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 rounded-xl bg-brand-500 text-white flex items-center justify-center">
+                        <i data-lucide="compass" class="w-4 h-4"></i>
+                    </div>
+                    <span class="font-display font-extrabold text-lg text-stone-900 dark:text-white">Lokal<span class="text-brand-500">KH</span></span>
+                </div>
+
+                <!-- Tab Switcher: Login vs Register -->
+                <div class="grid grid-cols-2 p-1 rounded-xl bg-stone-100 dark:bg-zinc-950 border border-stone-200/80 dark:border-zinc-800 mb-6">
+                    <button id="tab-login" type="button" onclick="switchAuthTab('login')" class="py-2 rounded-lg text-xs font-bold bg-white dark:bg-zinc-800 text-stone-900 dark:text-white shadow-xs transition-all">
+                        Login
+                    </button>
+                    <button id="tab-register" type="button" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-xs font-semibold text-stone-500 dark:text-zinc-400 hover:text-stone-900 dark:hover:text-white transition-all">
+                        Register
+                    </button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="login-form" onsubmit="handleAuthSubmit(event, 'login')" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Email Address</label>
+                        <input type="email" id="login-email" required placeholder="you@example.com" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400">Password</label>
+                            <button type="button" onclick="showToast('Password reset link sent to your email.')" class="text-[11px] font-semibold text-brand-500 hover:underline">Forgot?</button>
+                        </div>
+                        <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <button type="submit" class="w-full py-3 rounded-xl text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-sm shadow-brand-500/20 transition-all">
+                        Sign In to LokalKH
+                    </button>
+                    <div class="pt-2 border-t border-stone-100 dark:border-zinc-800 flex flex-col gap-2">
+                        <p class="text-[11px] text-center text-stone-400">Quick Demo Accounts:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="quickDemoLogin('admin')" class="py-2 px-3 rounded-xl text-xs font-semibold bg-stone-900 dark:bg-zinc-800 text-white hover:opacity-90">
+                                Demo Admin
+                            </button>
+                            <button type="button" onclick="quickDemoLogin('free')" class="py-2 px-3 rounded-xl text-xs font-semibold bg-stone-100 dark:bg-zinc-800/60 text-stone-700 dark:text-zinc-300 hover:bg-stone-200">
+                                Free Explorer
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Register Form -->
+                <form id="register-form" onsubmit="handleAuthSubmit(event, 'register')" class="hidden space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Full Name</label>
+                        <input type="text" id="reg-name" required placeholder="Sokha Meas" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Email Address</label>
+                        <input type="email" id="reg-email" required placeholder="sokha@example.com" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Account Type</label>
+                        <select id="reg-role" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="free">Explorer — Free ($0/mo • Explore &amp; Bookmark)</option>
+                            <option value="pro">Business Pro ($19/mo • Add up to 5 Places)</option>
+                            <option value="featured">Featured Partner ($49/mo • Unlimited + Top Spotlight)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Create Password</label>
+                        <input type="password" id="reg-password" required placeholder="Min. 6 characters" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <button type="submit" class="w-full py-3 rounded-xl text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-sm shadow-brand-500/20 transition-all">
+                        Create Free Account
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- PLACE DETAIL MODAL                                                    -->
+    <!-- ===================================================================== -->
+    <div id="detail-modal" class="fixed inset-0 z-40 hidden items-center justify-center p-0 sm:p-4 bg-stone-950/60 backdrop-blur-xs transition-opacity" onclick="closeDetailModal(event)">
+        <div class="relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-3xl bg-white dark:bg-zinc-900 sm:rounded-3xl shadow-2xl border border-stone-200 dark:border-zinc-800 overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+            
+            <!-- Top Floating Close & Bookmark Header -->
+            <div class="absolute top-4 right-4 z-20 flex items-center gap-2">
+                <button id="modal-bookmark-btn" class="p-2.5 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-stone-800 dark:text-white shadow-md hover:scale-105 transition-transform" title="Save place">
+                    <i data-lucide="bookmark" class="w-5 h-5"></i>
+                </button>
+                <button onclick="closeDetailModal()" class="p-2.5 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-stone-800 dark:text-white shadow-md hover:scale-105 transition-transform" title="Close">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Scrollable Modal Body -->
+            <div id="detail-modal-content" class="overflow-y-auto flex-1">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- ADD A PLACE SUBMISSION MODAL                                          -->
+    <!-- ===================================================================== -->
+    <div id="add-modal" class="fixed inset-0 z-40 hidden items-center justify-center p-4 bg-stone-950/60 backdrop-blur-xs" onclick="closeAddModal(event)">
+        <div class="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-stone-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-stone-200 dark:border-zinc-800 flex items-center justify-between">
+                <div>
+                    <h2 class="font-display font-bold text-lg text-stone-900 dark:text-white">Add a New Place</h2>
+                    <p class="text-xs text-stone-500 dark:text-zinc-400">Share a hidden gem or business in Cambodia</p>
+                </div>
+                <button onclick="closeAddModal()" class="p-2 rounded-xl text-stone-400 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Form Body -->
+            <form id="add-place-form" onsubmit="handleAddPlaceSubmit(event)" class="p-6 overflow-y-auto space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Place Name *</label>
+                    <input type="text" id="new-name" required placeholder="e.g. Romdeng Restaurant" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Category *</label>
+                        <select id="new-category" required class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="Restaurants">Restaurants</option>
+                            <option value="Hotels">Hotels</option>
+                            <option value="Popular Places">Popular Places</option>
+                            <option value="Cafes">Cafes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Province / City *</label>
+                        <select id="new-city" required class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="Phnom Penh">Phnom Penh</option>
+                            <option value="Siem Reap">Siem Reap</option>
+                            <option value="Kampot">Kampot</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Price Range</label>
+                        <select id="new-price" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="$">$ (Budget / Street Food)</option>
+                            <option value="$$" selected>$$ (Moderate)</option>
+                            <option value="$$$">$$$ (Upscale)</option>
+                            <option value="$$$$">$$$$ (Luxury)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Opening Hours</label>
+                        <input type="text" id="new-hours" value="08:00 AM - 10:00 PM" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Street Address / Area *</label>
+                    <input type="text" id="new-address" required placeholder="e.g. Street 174, Daun Penh" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-1.5">Description *</label>
+                    <textarea id="new-description" rows="3" required placeholder="What makes this place special?" class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2.5">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2.5 rounded-xl text-sm font-medium text-stone-600 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-sm shadow-brand-500/20 transition-all">Publish Place</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- APPLICATION LOGIC & CURATED CAMBODIA DATASET                          -->
+    <!-- ===================================================================== -->
+    <script src="/js/app.js"></script>
+</body>
+</html>
